@@ -1,65 +1,190 @@
-import Image from "next/image";
+
+
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase'; // Import the database client
+
+const EXERCISE_OPTIONS = [
+  'Bench Press',
+  'Squat',
+  'Deadlift',
+  'Overhead Press',
+  'Barbell Row',
+  'Bicep Curl',
+  'Tricep Pushdown',
+  'Lat Pulldown'
+];
 
 export default function Home() {
+  const [workouts, setWorkouts] = useState([]);
+  const [exercise, setExercise] = useState(EXERCISE_OPTIONS[0]);
+  const [weight, setWeight] = useState('');
+  const [reps, setReps] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // 1. FETCH FROM DATABASE ON LOAD
+  useEffect(() => {
+    async function fetchWorkouts() {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .order('created_at', { ascending: false }); // Latest workouts first
+
+      if (error) {
+        console.error('Error fetching data:', error);
+      } else {
+        setWorkouts(data);
+      }
+      setLoading(false);
+    }
+
+    fetchWorkouts();
+  }, []);
+
+  // 2. INSERT INTO DATABASE ON SUBMIT
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!exercise || !weight || !reps) return;
+
+    // Send data to Supabase
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert([
+        { 
+          exercise, 
+          weight: parseInt(weight), 
+          reps: parseInt(reps) 
+        }
+      ])
+      .select(); // Returns the newly created row containing its DB generated ID and timestamp
+
+    if (error) {
+      console.error('Error saving workout:', error);
+      alert('Failed to save to database.');
+    } else if (data) {
+      // Optimistically update frontend UI state with the returned database row
+      setWorkouts([data[0], ...workouts]);
+      setWeight('');
+      setReps('');
+    }
+  };
+
+  // 3. DELETE FROM DATABASE
+  const clearHistory = async () => {
+    if (confirm('Are you sure you want to wipe the database logs?')) {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .neq('id', 0); // Deletes every row where id is not 0 (all rows)
+
+      if (error) {
+        console.error('Error clearing data:', error);
+      } else {
+        setWorkouts([]);
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-bold text-center mb-8 flex items-center justify-center gap-2">
+          💪 Live DB Gym Tracker
+        </h1>
+
+        {/* INPUT FORM */}
+        <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4 mb-8">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              Select Exercise
+            </label>
+            <select
+              value={exercise}
+              onChange={(e) => setExercise(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+              {EXERCISE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Weight</label>
+              <input
+                type="number"
+                placeholder="135"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Reps</label>
+              <input
+                type="number"
+                placeholder="10"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition-colors mt-2"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Log to PostgreSQL
+          </button>
+        </form>
+
+        {/* HISTORY LIST */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-slate-300">Workout History</h2>
+            {workouts.length > 0 && (
+              <button 
+                onClick={clearHistory}
+                className="text-xs text-red-400 hover:text-red-300 underline"
+              >
+                Wipe Remote DB
+              </button>
+            )}
+          </div>
+          
+          {loading ? (
+            <p className="text-sm text-slate-500 italic">Connecting to database...</p>
+          ) : workouts.length === 0 ? (
+            <p className="text-sm text-slate-500 italic">No sets found in cloud storage.</p>
+          ) : (
+            workouts.map((workout) => (
+              <div
+                key={workout.id}
+                className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center"
+              >
+                <div>
+                  <h3 className="font-semibold text-slate-200">{workout.exercise}</h3>
+                  <p className="text-xs text-slate-500">
+                    {new Date(workout.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-indigo-400">{workout.weight}</span>
+                  <span className="mx-1 text-slate-600">×</span>
+                  <span className="text-lg font-bold text-slate-200">{workout.reps}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
+
