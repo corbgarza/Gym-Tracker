@@ -110,6 +110,25 @@ export default function Home() {
     }
   };
 
+
+		// ADD THIS right below submitEdit:
+  const deleteWorkout = async (id) => {
+    if (!confirm('Are you sure you want to delete this set?')) return;
+
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting:', error);
+      alert('Failed to delete workout.');
+    } else {
+      // Remove the deleted item from the local state instantly
+      setWorkouts(workouts.filter(w => w.id !== id));
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
       <div className="w-full max-w-md">
@@ -271,12 +290,20 @@ export default function Home() {
                       <span className="mx-1 text-slate-600">×</span>
                       <span className="text-lg font-bold text-slate-200">{workout.weight}</span>
                     </div>
+										<div className="flex items-center gap-3">
                     <button 
                       onClick={() => { setEditingId(workout.id); setEditWeight(workout.weight); setEditReps(workout.reps); setEditSets(workout.sets);  }} 
                       className="text-xs text-indigo-400 hover:text-indigo-300 underline"
                     >
                       Edit
                     </button>
+										<button 
+                        onClick={() => deleteWorkout(workout.id)} 
+                        className="text-xs text-red-500 hover:text-red-400 underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
