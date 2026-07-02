@@ -1,0 +1,23 @@
+Bands
+Chains
+Reverse Bands
+Seated
+Standing
+Chest Supported
+Single-arm
+Both-arms
+Close
+Medium
+Wide
+Sumo
+Conventional
+Romanian
+Box
+Front
+Deficit
+Block
+Low
+Parallel
+High
+Low-bar
+High-bar
