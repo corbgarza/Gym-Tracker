@@ -3,21 +3,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-const EXERCISE_OPTIONS = [
-  'Bench Press',
-  'Squat',
-  'Deadlift',
-  'Overhead Press',
-  'Barbell Row',
-  'Bicep Curl',
-  'Tricep Pushdown',
-  'Lat Pulldown'
-];
+const EXERCISE_OPTIONS = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Bicep Curl', 'Tricep Pushdown', 'Lat Pulldown'];
 
 export default function Home() {
   const [workouts, setWorkouts] = useState([]);
   
-  // 1. Change initial state to an empty string
   const [exercise, setExercise] = useState('');
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
@@ -31,7 +21,6 @@ export default function Home() {
   const [editReps, setEditReps] = useState('');
 	const [editSets, setEditSets] = useState('');
 
-  // FETCH FROM DATABASE ON LOAD
   useEffect(() => {
     async function fetchWorkouts() {
       const { data, error } = await supabase
@@ -49,14 +38,11 @@ export default function Home() {
     fetchWorkouts();
   }, []);
 
-  // INSERT INTO DATABASE ON SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!exercise || !weight || !reps || !sets) return;
 
 		const customTimestamp = new Date(`${logDate}T12:00:00`).toISOString();
-	
-
     const { data, error } = await supabase
       .from('workouts')
       .insert([{ exercise, weight: parseInt(weight), reps: parseInt(reps), sets: parseInt(sets), created_at: customTimestamp }])
@@ -68,7 +54,6 @@ export default function Home() {
     } else if (data) {
       setWorkouts([data[0], ...workouts]);
       
-      // Reset everything, including the dropdown, to hide the inputs again
       setExercise('');
       setWeight('');
       setReps('');
@@ -84,9 +69,8 @@ export default function Home() {
   };
 
 	const filteredWorkouts = workouts.filter((workout) => {
-    if (!filterDate) return true; // Show all if no date selected
+    if (!filterDate) return false;
 
-    // Convert UTC database time to local YYYY-MM-DD
     const d = new Date(workout.created_at);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -104,14 +88,11 @@ export default function Home() {
     if (error) {
       console.error('Error updating:', error);
     } else {
-      // Update the local list instantly
       setWorkouts(workouts.map(w => w.id === id ? { ...w, weight: editWeight, reps: editReps, sets: editSets } : w));
-      setEditingId(null); // Close the edit mode
+      setEditingId(null); 
     }
   };
 
-
-		// ADD THIS right below submitEdit:
   const deleteWorkout = async (id) => {
     if (!confirm('Are you sure you want to delete this set?')) return;
 
@@ -124,7 +105,6 @@ export default function Home() {
       console.error('Error deleting:', error);
       alert('Failed to delete workout.');
     } else {
-      // Remove the deleted item from the local state instantly
       setWorkouts(workouts.filter(w => w.id !== id));
     }
   };
@@ -133,10 +113,9 @@ export default function Home() {
     <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-8 flex items-center justify-center gap-2">
-          💪 Live DB Gym Tracker
+          💪 Live DB Gym Tracker 💪
         </h1>
 
-        {/* INPUT FORM */}
         <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4 mb-8">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
@@ -147,9 +126,7 @@ export default function Home() {
               onChange={(e) => setExercise(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
             >
-              {/* Placeholder option */}
               <option value="">--- Choose an Exercise ---</option>
-              
               {EXERCISE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
