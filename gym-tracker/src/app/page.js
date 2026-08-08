@@ -91,7 +91,7 @@ export default function Home() {
     }
   };
 
-	const filteredWorkouts = workouts.filter((workout) => {
+	const filteredWorkouts = workouts.filterDate((workout) => {
     if (!filterDate) return false;
 
     const d = new Date(workout.created_at);
