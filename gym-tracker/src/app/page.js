@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const EXERCISE_OPTIONS = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Bicep Curl', 'Tricep Pushdown', 'Lat Pulldown'];
+const inputStyles = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500";
 
 export default function Home() {
   const [workouts, setWorkouts] = useState([]);
@@ -109,6 +110,12 @@ export default function Home() {
     }
   };
 
+		const inputFields = [
+		  { label: 'Sets', val: sets, setter: setSets, placeholder: '4' },
+		  { label: 'Reps', val: reps, setter: setReps, placeholder: '10' },
+		  { label: 'Weight', val: weight, setter: setWeight, placeholder: '135' }
+		];
+
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
       <div className="w-full max-w-md">
@@ -147,38 +154,22 @@ export default function Home() {
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Sets</label>
-                  <input
-                    type="number"
-                    placeholder="4"
-                    value={sets}
-                    onChange={(e) => setSets(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Reps</label>
-                  <input
-                    type="number"
-                    placeholder="10"
-                    value={reps}
-                    onChange={(e) => setReps(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Weight</label>
-                  <input
-                    type="number"
-                    placeholder="135"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
+							<div className="grid grid-cols-3 gap-4">
+							  {inputFields.map((field) => (
+							    <div key={field.label}>
+							      <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+							        {field.label}
+							      </label>
+							      <input
+							        type="number"
+							        placeholder={field.placeholder}
+							        value={field.val}
+							        onChange={(e) => field.setter(e.target.value)}
+							        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
+							      />
+							    </div>
+							  ))}
+							</div>
 
               <button
                 type="submit"
