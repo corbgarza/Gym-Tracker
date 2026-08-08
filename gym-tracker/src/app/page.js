@@ -11,9 +11,21 @@ const btnDanger = `${btnBase} text-red-500 hover:text-red-400 underline`;
 const btnSuccess = `${btnBase} bg-green-600 hover:bg-green-500 text-white ml-1`;
 
 export default function Home() {
-  const [workouts, setWorkouts] = useState([]);
+  const [workouts, setWorkouts] = useState({
+			exercise: '',
+			weight: '',
+			reps: '',
+			sets: '',
+			loading: true,
+			filterDate: '',
+			logDate: new Date().toISOString().split('T')[0],
+			editingId: null,
+			editWeight: '',
+			editReps: '',
+			editSets: ''
+	});
   
-  const [exercise, setExercise] = useState('');
+/*  const [exercise, setExercise] = useState('');
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
 	const [sets, setSets] = useState('');
@@ -25,7 +37,7 @@ export default function Home() {
   const [editWeight, setEditWeight] = useState('');
   const [editReps, setEditReps] = useState('');
 	const [editSets, setEditSets] = useState('');
-
+*/
   useEffect(() => {
     async function fetchWorkouts() {
       const { data, error } = await supabase
@@ -42,6 +54,12 @@ export default function Home() {
     }
     fetchWorkouts();
   }, []);
+
+  const handleChange = (e) => {
+			const { name, value } = e.target;
+			setWorkouts(prev => ({ ...prev, [name]: value }));
+	};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,9 +133,9 @@ export default function Home() {
   };
 
 		const inputFields = [
-		  { label: 'Sets', val: sets, setter: setSets, placeholder: '4' },
-		  { label: 'Reps', val: reps, setter: setReps, placeholder: '10' },
-		  { label: 'Weight', val: weight, setter: setWeight, placeholder: '135' }
+		  { label: 'Sets', name: 'sets', val: sets, setter: setSets, placeholder: '4' },
+		  { label: 'Reps', name: 'reps', val: reps, setter: setReps, placeholder: '10' },
+		  { label: 'Weight', name: 'weight', val: weight, setter: setWeight, placeholder: '135' }
 		];
 
   return (
@@ -169,7 +187,7 @@ export default function Home() {
 							        placeholder={field.placeholder}
 							        value={field.val}
 							        onChange={(e) => field.setter(e.target.value)}
-							        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
+							        className={inputStyles}
 							      />
 							    </div>
 							  ))}
