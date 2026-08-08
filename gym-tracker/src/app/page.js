@@ -5,6 +5,10 @@ import { supabase } from '../lib/supabase';
 
 const EXERCISE_OPTIONS = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Bicep Curl', 'Tricep Pushdown', 'Lat Pulldown'];
 const inputStyles = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500";
+const btnBase = "text-xs rounded px-2 py-1 transition-colors";
+const btnAction = `${btnBase} text-indigo-400 hover:text-indigo-300 underline`;
+const btnDanger = `${btnBase} text-red-500 hover:text-red-400 underline`;
+const btnSuccess = `${btnBase} bg-green-600 hover:bg-green-500 text-white ml-1`;
 
 export default function Home() {
   const [workouts, setWorkouts] = useState([]);
@@ -246,8 +250,8 @@ export default function Home() {
                       onChange={(e) => setEditWeight(e.target.value)} 
                       className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" 
                     />
-                    <button onClick={() => submitEdit(workout.id)} className="text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded ml-1">Save</button>
-                    <button onClick={() => setEditingId(null)} className="text-xs text-slate-400 hover:text-slate-300">Cancel</button>
+                    <button onClick={() => submitEdit(workout.id)} className={btnSuccess}>Save</button>
+                    <button onClick={() => setEditingId(null)} className={btnSuccess}>Cancel</button>
                   </div>
                 ) : (
                   <div className="text-right flex items-center justify-end gap-3">
@@ -259,18 +263,9 @@ export default function Home() {
                       <span className="text-lg font-bold text-slate-200">{workout.weight}</span>
                     </div>
 										<div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => { setEditingId(workout.id); setEditWeight(workout.weight); setEditReps(workout.reps); setEditSets(workout.sets);  }} 
-                      className="text-xs text-indigo-400 hover:text-indigo-300 underline"
-                    >
-                      Edit
-                    </button>
-										<button 
-                        onClick={() => deleteWorkout(workout.id)} 
-                        className="text-xs text-red-500 hover:text-red-400 underline"
-                      >
-                        Delete
-                      </button>
+                    <button onClick={() => { setEditingId(workout.id); setEditWeight(workout.weight); setEditReps(workout.reps); setEditSets(workout.sets);  }} 
+                      className={btnAction}>Edit</button>
+										<button onClick={() => deleteWorkout(workout.id)} className={btnDanger}>Delete</button>
                     </div>
                   </div>
                 )}
