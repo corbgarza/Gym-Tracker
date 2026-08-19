@@ -9,35 +9,28 @@ const btnBase = "text-xs rounded px-2 py-1 transition-colors";
 const btnAction = `${btnBase} text-indigo-400 hover:text-indigo-300 underline`;
 const btnDanger = `${btnBase} text-red-500 hover:text-red-400 underline`;
 const btnSuccess = `${btnBase} bg-green-600 hover:bg-green-500 text-white ml-1`;
+const btnCancel = `${btnBase} bg-slate-700 hover:bg-slate-600 text-slate-200 ml-1`;
 
 export default function Home() {
-  const [workouts, setWorkouts] = useState({
-			exercise: '',
-			weight: '',
-			reps: '',
-			sets: '',
-			loading: true,
-			filterDate: '',
-			logDate: new Date().toISOString().split('T')[0],
-			editingId: null,
-			editWeight: '',
-			editReps: '',
-			editSets: ''
-	});
-  
-/*  const [exercise, setExercise] = useState('');
+  const [workouts, setWorkouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form input state
+  const [exercise, setExercise] = useState('');
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
-	const [sets, setSets] = useState('');
-  const [loading, setLoading] = useState(true);
-	const [filterDate, setFilterDate] = useState('');
-	const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
-  
+  const [sets, setSets] = useState('');
+  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Filter state
+  const [filterDate, setFilterDate] = useState('');
+
+  // Edit state
   const [editingId, setEditingId] = useState(null);
   const [editWeight, setEditWeight] = useState('');
   const [editReps, setEditReps] = useState('');
-	const [editSets, setEditSets] = useState('');
-*/
+  const [editSets, setEditSets] = useState('');
+
   useEffect(() => {
     async function fetchWorkouts() {
       const { data, error } = await supabase
@@ -48,27 +41,27 @@ export default function Home() {
       if (error) {
         console.error('Error fetching data:', error);
       } else {
-        setWorkouts(data);
+        setWorkouts(data || []);
       }
       setLoading(false);
     }
     fetchWorkouts();
   }, []);
 
-  const handleChange = (e) => {
-			const { name, value } = e.target;
-			setWorkouts(prev => ({ ...prev, [name]: value }));
-	};
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!exercise || !weight || !reps || !sets) return;
 
-		const customTimestamp = new Date(`${logDate}T12:00:00`).toISOString();
+    const customTimestamp = new Date(`${logDate}T12:00:00`).toISOString();
     const { data, error } = await supabase
       .from('workouts')
-      .insert([{ exercise, weight: parseInt(weight), reps: parseInt(reps), sets: parseInt(sets), created_at: customTimestamp }])
+      .insert([{
+        exercise,
+        weight: parseInt(weight, 10),
+        reps: parseInt(reps, 10),
+        sets: parseInt(sets, 10),
+        created_at: customTimestamp
+      }])
       .select();
 
     if (error) {
@@ -76,43 +69,52 @@ export default function Home() {
       alert('Failed to save to database.');
     } else if (data) {
       setWorkouts([data[0], ...workouts]);
-      
       setExercise('');
       setWeight('');
       setReps('');
-			setSets('');
+      setSets('');
     }
   };
 
   const clearHistory = async () => {
     if (confirm('Are you sure you want to wipe the database logs?')) {
       const { error } = await supabase.from('workouts').delete().neq('id', 0);
-      if (!error) setWorkouts([]);
+      if (!error) {
+        setWorkouts([]);
+      } else {
+        console.error('Error clearing data:', error);
+        alert('Failed to clear database logs.');
+      }
     }
   };
 
-	const filteredWorkouts = workouts.filterDate((workout) => {
-    if (!filterDate) return false;
+  const filteredWorkouts = workouts.filter((workout) => {
+    if (!filterDate) return true;
 
     const d = new Date(workout.created_at);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}` === filterDate;
   });
 
   const submitEdit = async (id) => {
+    const parsedWeight = parseInt(editWeight, 10);
+    const parsedReps = parseInt(editReps, 10);
+    const parsedSets = parseInt(editSets, 10);
+
     const { error } = await supabase
       .from('workouts')
-      .update({ weight: parseInt(editWeight), reps: parseInt(editReps), sets: parseInt(editSets) })
+      .update({ weight: parsedWeight, reps: parsedReps, sets: parsedSets })
       .eq('id', id);
 
     if (error) {
       console.error('Error updating:', error);
+      alert('Failed to update workout.');
     } else {
-      setWorkouts(workouts.map(w => w.id === id ? { ...w, weight: editWeight, reps: editReps, sets: editSets } : w));
-      setEditingId(null); 
+      setWorkouts(workouts.map(w => w.id === id ? { ...w, weight: parsedWeight, reps: parsedReps, sets: parsedSets } : w));
+      setEditingId(null);
     }
   };
 
@@ -132,11 +134,11 @@ export default function Home() {
     }
   };
 
-		const inputFields = [
-		  { label: 'Sets', name: 'sets', val: sets, setter: setSets, placeholder: '4' },
-		  { label: 'Reps', name: 'reps', val: reps, setter: setReps, placeholder: '10' },
-		  { label: 'Weight', name: 'weight', val: weight, setter: setWeight, placeholder: '135' }
-		];
+  const inputFields = [
+    { label: 'Sets', name: 'sets', val: sets, setter: setSets, placeholder: '4' },
+    { label: 'Reps', name: 'reps', val: reps, setter: setReps, placeholder: '10' },
+    { label: 'Weight', name: 'weight', val: weight, setter: setWeight, placeholder: '135' }
+  ];
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
@@ -236,8 +238,10 @@ export default function Home() {
 
           {loading ? (
             <p className="text-sm text-slate-500 italic">Connecting to database...</p>
-          ) : workouts.length === 0 ? (
-            <p className="text-sm text-slate-500 italic">No sets found in cloud storage.</p>
+          ) : filteredWorkouts.length === 0 ? (
+            <p className="text-sm text-slate-500 italic">
+              {filterDate ? 'No sets found for this date.' : 'No sets found in cloud storage.'}
+            </p>
           ) : (
             filteredWorkouts.map((workout) => (
               <div key={workout.id} className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
@@ -269,7 +273,7 @@ export default function Home() {
                       className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" 
                     />
                     <button onClick={() => submitEdit(workout.id)} className={btnSuccess}>Save</button>
-                    <button onClick={() => setEditingId(null)} className={btnSuccess}>Cancel</button>
+                    <button onClick={() => setEditingId(null)} className={btnCancel}>Cancel</button>
                   </div>
                 ) : (
                   <div className="text-right flex items-center justify-end gap-3">
