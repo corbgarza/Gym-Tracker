@@ -1,144 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-
-const EXERCISE_OPTIONS = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Bicep Curl', 'Tricep Pushdown', 'Lat Pulldown'];
-const inputStyles = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500";
-const btnBase = "text-xs rounded px-2 py-1 transition-colors";
-const btnAction = `${btnBase} text-indigo-400 hover:text-indigo-300 underline`;
-const btnDanger = `${btnBase} text-red-500 hover:text-red-400 underline`;
-const btnSuccess = `${btnBase} bg-green-600 hover:bg-green-500 text-white ml-1`;
-const btnCancel = `${btnBase} bg-slate-700 hover:bg-slate-600 text-slate-200 ml-1`;
+import { useState, useMemo } from 'react';
+import { useWorkouts } from '../hooks/useWorkouts';
+import WorkoutForm from '../components/WorkoutForm';
+import WorkoutFilter from '../components/WorkoutFilter';
+import WorkoutList from '../components/WorkoutList';
 
 export default function Home() {
-  const [workouts, setWorkouts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Form input state
-  const [exercise, setExercise] = useState('');
-  const [weight, setWeight] = useState('');
-  const [reps, setReps] = useState('');
-  const [sets, setSets] = useState('');
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
-
-  // Filter state
+  const { workouts, loading, addWorkout, updateWorkout, deleteWorkout, clearWorkouts } = useWorkouts();
   const [filterDate, setFilterDate] = useState('');
 
-  // Edit state
-  const [editingId, setEditingId] = useState(null);
-  const [editWeight, setEditWeight] = useState('');
-  const [editReps, setEditReps] = useState('');
-  const [editSets, setEditSets] = useState('');
-
-  useEffect(() => {
-    async function fetchWorkouts() {
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching data:', error);
-      } else {
-        setWorkouts(data || []);
-      }
-      setLoading(false);
-    }
-    fetchWorkouts();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!exercise || !weight || !reps || !sets) return;
-
-    const customTimestamp = new Date(`${logDate}T12:00:00`).toISOString();
-    const { data, error } = await supabase
-      .from('workouts')
-      .insert([{
-        exercise,
-        weight: parseInt(weight, 10),
-        reps: parseInt(reps, 10),
-        sets: parseInt(sets, 10),
-        created_at: customTimestamp
-      }])
-      .select();
-
-    if (error) {
-      console.error('Error saving workout:', error);
-      alert('Failed to save to database.');
-    } else if (data) {
-      setWorkouts([data[0], ...workouts]);
-      setExercise('');
-      setWeight('');
-      setReps('');
-      setSets('');
-    }
-  };
-
-  const clearHistory = async () => {
-    if (confirm('Are you sure you want to wipe the database logs?')) {
-      const { error } = await supabase.from('workouts').delete().neq('id', 0);
-      if (!error) {
-        setWorkouts([]);
-      } else {
-        console.error('Error clearing data:', error);
-        alert('Failed to clear database logs.');
-      }
-    }
-  };
-
-  const filteredWorkouts = workouts.filter((workout) => {
-    if (!filterDate) return true;
-
-    const d = new Date(workout.created_at);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}` === filterDate;
-  });
-
-  const submitEdit = async (id) => {
-    const parsedWeight = parseInt(editWeight, 10);
-    const parsedReps = parseInt(editReps, 10);
-    const parsedSets = parseInt(editSets, 10);
-
-    const { error } = await supabase
-      .from('workouts')
-      .update({ weight: parsedWeight, reps: parsedReps, sets: parsedSets })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating:', error);
-      alert('Failed to update workout.');
-    } else {
-      setWorkouts(workouts.map(w => w.id === id ? { ...w, weight: parsedWeight, reps: parsedReps, sets: parsedSets } : w));
-      setEditingId(null);
-    }
-  };
-
-  const deleteWorkout = async (id) => {
-    if (!confirm('Are you sure you want to delete this set?')) return;
-
-    const { error } = await supabase
-      .from('workouts')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting:', error);
-      alert('Failed to delete workout.');
-    } else {
-      setWorkouts(workouts.filter(w => w.id !== id));
-    }
-  };
-
-  const inputFields = [
-    { label: 'Sets', name: 'sets', val: sets, setter: setSets, placeholder: '4' },
-    { label: 'Reps', name: 'reps', val: reps, setter: setReps, placeholder: '10' },
-    { label: 'Weight', name: 'weight', val: weight, setter: setWeight, placeholder: '135' }
-  ];
+  const filteredWorkouts = useMemo(() => {
+    if (!filterDate) return workouts;
+    return workouts.filter((workout) => {
+      const d = new Date(workout.created_at);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}` === filterDate;
+    });
+  }, [workouts, filterDate]);
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
@@ -147,154 +28,18 @@ export default function Home() {
           💪 Live DB Gym Tracker 💪
         </h1>
 
-        <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4 mb-8">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-              Select Exercise
-            </label>
-            <select
-              value={exercise}
-              onChange={(e) => setExercise(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
-            >
-              <option value="">--- Choose an Exercise ---</option>
-              {EXERCISE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+        <WorkoutForm onAddWorkout={addWorkout} />
 
-          {/* 2. CONDITIONAL SLIDE-IN/POP-UP LOGIC */}
-          {exercise && (
-            <div className="space-y-4 animate-fadeIn">
-							<div>
-								<label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Date of Workout</label>
-								<input
-                  type="date"
-                  value={logDate}
-                  onChange={(e) => setLogDate(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
-                />
-              </div>
-							<div className="grid grid-cols-3 gap-4">
-							  {inputFields.map((field) => (
-							    <div key={field.label}>
-							      <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-							        {field.label}
-							      </label>
-							      <input
-							        type="number"
-							        placeholder={field.placeholder}
-							        value={field.val}
-							        onChange={(e) => field.setter(e.target.value)}
-							        className={inputStyles}
-							      />
-							    </div>
-							  ))}
-							</div>
+        <WorkoutFilter filterDate={filterDate} onFilterChange={setFilterDate} />
 
-              <button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition-colors mt-2"
-              >
-                Log to PostgreSQL
-              </button>
-            </div>
-          )}
-        </form>
-
-        {/* HISTORY LIST */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-slate-300">Training List</h2>
-            {workouts.length > 0 && (
-              <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-300 underline">
-                Wipe Remote DB
-              </button>
-            )}
-          </div>
-  
-				<div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between mb-4">
-            <label className="text-sm text-slate-400">Filter by Date:</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
-              />
-              {filterDate && (
-                <button 
-                  onClick={() => setFilterDate('')} 
-                  className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-200"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-slate-500 italic">Connecting to database...</p>
-          ) : filteredWorkouts.length === 0 ? (
-            <p className="text-sm text-slate-500 italic">
-              {filterDate ? 'No sets found for this date.' : 'No sets found in cloud storage.'}
-            </p>
-          ) : (
-            filteredWorkouts.map((workout) => (
-              <div key={workout.id} className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold text-slate-200">{workout.exercise}</h3>
-                  <p className="text-xs text-slate-500">{new Date(workout.created_at).toLocaleDateString()}</p>
-                </div>
-							{/* REPLACED SECTION: Toggle between Edit inputs and View text */}
-                {editingId === workout.id ? (
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="number" 
-                      value={editSets} 
-                      onChange={(e) => setEditSets(e.target.value)} 
-                      className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" 
-                    />
-                    <span className="text-slate-600">×</span>
-                    <input 
-                      type="number" 
-                      value={editReps} 
-                      onChange={(e) => setEditReps(e.target.value)} 
-                      className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" 
-                    />
-                    <span className="text-slate-600">×</span>
-                    <input 
-                      type="number" 
-                      value={editWeight} 
-                      onChange={(e) => setEditWeight(e.target.value)} 
-                      className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" 
-                    />
-                    <button onClick={() => submitEdit(workout.id)} className={btnSuccess}>Save</button>
-                    <button onClick={() => setEditingId(null)} className={btnCancel}>Cancel</button>
-                  </div>
-                ) : (
-                  <div className="text-right flex items-center justify-end gap-3">
-                    <div>
-                      <span className="text-lg font-bold text-indigo-400">{workout.sets}</span>
-                      <span className="mx-1 text-slate-600">×</span>
-                      <span className="text-lg font-bold text-slate-200">{workout.reps}</span>
-                      <span className="mx-1 text-slate-600">×</span>
-                      <span className="text-lg font-bold text-slate-200">{workout.weight}</span>
-                    </div>
-										<div className="flex items-center gap-3">
-                    <button onClick={() => { setEditingId(workout.id); setEditWeight(workout.weight); setEditReps(workout.reps); setEditSets(workout.sets);  }} 
-                      className={btnAction}>Edit</button>
-										<button onClick={() => deleteWorkout(workout.id)} className={btnDanger}>Delete</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        <WorkoutList
+          workouts={filteredWorkouts}
+          loading={loading}
+          filterDate={filterDate}
+          onClearHistory={clearWorkouts}
+          onUpdate={updateWorkout}
+          onDelete={deleteWorkout}
+        />
       </div>
     </main>
   );
